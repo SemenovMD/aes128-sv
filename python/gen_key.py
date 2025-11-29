@@ -159,7 +159,7 @@ def generate_sv_code_forward(keys):
     print("="*80)
     
     print("// Round keys in forward order for AES encryption")
-    print("localparam logic [127:0] FWD_KEY [0:10] = '{")
+    print("localparam logic [127:0] FWD_KEY [10:0] = '{")
     
     # Выводим ключи в прямом порядке: K0, K1, K2, ..., K10
     for i in range(11):
@@ -198,20 +198,6 @@ def main():
     
     # Генерация SystemVerilog кода в прямом порядке (для шифрования)
     generate_sv_code_forward(keys)
-    
-    # Дополнительная информация для использования в SV
-    print("\n" + "="*80)
-    print("USAGE IN SYSTEMVERILOG")
-    print("="*80)
-    print("// For decryption:")
-    print("// - Use INV_KEY[0] for initial AddRoundKey (K10)")
-    print("// - Use INV_KEY[1] for Round 1 (K9)")
-    print("// - ...")
-    print("// - Use INV_KEY[10] for final round (K0)")
-    print("")
-    print("// Example:")
-    print("// state <= add_round_key(state, INV_KEY[round_num]);")
-    print("// where round_num goes from 0 to 10")
 
 if __name__ == "__main__":
     main()

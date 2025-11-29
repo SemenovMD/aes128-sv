@@ -1,12 +1,18 @@
 # Variables
-SIM = aes128/tb/vsim/vsim.do
+SIM_DEC_1_CYCLE  = aes128_dec/aes128_dec_1_cycle/tb/vsim/vsim.do
+SIM_DEC_42_CYCLE = aes128_dec/aes128_dec_42_cycle/tb/vsim/vsim.do
 
 # Targets
-all: sim
+all: sim_dec_42_cycle
 
-sim:
+sim_dec_1_cycle:
 	@echo "Running simulation..."
-	vsim -do $(SIM)
+	vsim -do $(SIM_DEC_1_CYCLE)
+	@echo "Simulation completed"
+
+sim_dec_42_cycle:
+	@echo "Running simulation..."
+	vsim -do $(SIM_DEC_42_CYCLE)
 	@echo "Simulation completed"
 	
 clean:
@@ -16,4 +22,4 @@ clean:
 	rm -f vsim.wlf
 	@echo "Clean completed."
 
-.PHONY: all sim clean
+.PHONY: all sim_dec_1_cycle sim_dec_42_cycle clean
