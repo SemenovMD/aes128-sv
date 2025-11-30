@@ -179,7 +179,7 @@ module aes128_dec_core
         INV_SHIFT_ROWS,
         INV_SUB_BYTES,
         ADD_ROUND_INV_KEY_1,
-        INV_MIX_COLUMS,
+        INV_MIX_COLUMNS,
         HAND_M_AXIS
     } state_type;
 
@@ -249,7 +249,7 @@ module aes128_dec_core
                     begin
                         if (count != 4'd10) begin
                             count <= count + 1'd1;
-                            state <= INV_MIX_COLUMS;
+                            state <= INV_MIX_COLUMNS;
                         end else begin
                             count <= 4'd0;
                             state <= HAND_M_AXIS;
@@ -257,7 +257,7 @@ module aes128_dec_core
 
                         data_buf <= data_buf ^ INV_KEY[count];
                     end
-                INV_MIX_COLUMS:
+                INV_MIX_COLUMNS:
                     begin
                         state <= INV_SHIFT_ROWS;
                         data_buf[127:120] <= (MULT_0E[rd_addr_0_0E]  ^ MULT_0B[rd_addr_0_0B])  ^ (MULT_0D[rd_addr_0_0D]  ^ MULT_09[rd_addr_0_09]);
