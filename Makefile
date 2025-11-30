@@ -6,7 +6,7 @@ SIM_ENC_1_CYCLE  = aes128_enc/aes128_enc_1_cycle/tb/vsim/vsim.do
 SIM_ENC_42_CYCLE = aes128_enc/aes128_enc_42_cycle/tb/vsim/vsim.do
 
 # Targets
-all: sim_dec_42_cycle
+all: sim_dec_1_cycle
 
 sim_dec_1_cycle:
 	@echo "Running simulation..."

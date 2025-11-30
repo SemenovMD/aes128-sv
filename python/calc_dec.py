@@ -3,7 +3,6 @@
 AES-128 Decryption Step-by-Step with NIST Validated Test Vectors
 """
 
-# Inverse S-Box (остается без изменений)
 inv_sbox = [
     0x52, 0x09, 0x6A, 0xD5, 0x30, 0x36, 0xA5, 0x38, 0xBF, 0x40, 0xA3, 0x9E, 0x81, 0xF3, 0xD7, 0xFB,
     0x7C, 0xE3, 0x39, 0x82, 0x9B, 0x2F, 0xFF, 0x87, 0x34, 0x8E, 0x43, 0x44, 0xC4, 0xDE, 0xE9, 0xCB,
@@ -24,7 +23,6 @@ inv_sbox = [
 ]
 
 def bytes_to_matrix(data):
-    """Преобразует 16 байт в матрицу 4x4 (по столбцам)"""
     matrix = [[0] * 4 for _ in range(4)]
     for i in range(4):
         for j in range(4):
@@ -32,7 +30,6 @@ def bytes_to_matrix(data):
     return matrix
 
 def matrix_to_bytes(matrix):
-    """Преобразует матрицу 4x4 обратно в 16 байт"""
     data = bytearray(16)
     for i in range(4):
         for j in range(4):
@@ -40,15 +37,12 @@ def matrix_to_bytes(matrix):
     return bytes(data)
 
 def print_state(state, title):
-    """Красивый вывод состояния"""
     print(f"{title}:")
     for i in range(4):
         row = [f"{state[j][i]:02X}" for j in range(4)]
         print("  " + " ".join(row))
 
-# Остальные функции остаются без изменений
 def inv_shift_rows(state):
-    """Обратный сдвиг строк"""
     new_state = [row[:] for row in state]
     new_state[1] = [state[1][3], state[1][0], state[1][1], state[1][2]]
     new_state[2] = [state[2][2], state[2][3], state[2][0], state[2][1]]
@@ -56,16 +50,13 @@ def inv_shift_rows(state):
     return new_state
 
 def inv_sub_bytes(state):
-    """Обратная замена байтов через InvSBox"""
     return [[inv_sbox[b] for b in row] for row in state]
 
 def add_round_key(state, round_key):
-    """XOR с ключом раунда"""
     key_matrix = bytes_to_matrix(round_key)
     return [[state[i][j] ^ key_matrix[i][j] for j in range(4)] for i in range(4)]
 
 def gmul(a, b):
-    """Умножение в поле GF(2^8)"""
     p = 0
     for _ in range(8):
         if b & 1:
@@ -78,7 +69,6 @@ def gmul(a, b):
     return p & 0xFF
 
 def inv_mix_columns(state):
-    """Обратное перемешивание столбцов"""
     new_state = [[0]*4 for _ in range(4)]
     for col in range(4):
         column = [state[row][col] for row in range(4)]
@@ -89,11 +79,8 @@ def inv_mix_columns(state):
     return new_state
 
 def key_expansion(key):
-    """Расширение ключа AES-128"""
-    # AES Rcon table
     rcon = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36]
     
-    # AES S-Box
     sbox = [
         0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
         0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0,
@@ -123,8 +110,8 @@ def key_expansion(key):
         temp = w[i-1][:]
         
         if i % 4 == 0:
-            temp = temp[1:] + temp[:1]  # rot_word
-            temp = [sbox[b] for b in temp]  # sub_word
+            temp = temp[1:] + temp[:1]
+            temp = [sbox[b] for b in temp]
             temp[0] ^= rcon[i//4 - 1]
         
         w[i] = [w[i-4][j] ^ temp[j] for j in range(4)]
@@ -139,7 +126,6 @@ def key_expansion(key):
     return keys
 
 def aes128_decrypt_step_by_step(ciphertext, round_keys):
-    """Пошаговое дешифрование AES-128 с подробным выводом"""
     print("=" * 70)
     print("AES-128 DECRYPTION STEP BY STEP")
     print("=" * 70)
@@ -147,7 +133,6 @@ def aes128_decrypt_step_by_step(ciphertext, round_keys):
     state = bytes_to_matrix(ciphertext)
     print_state(state, "Initial Ciphertext")
     
-    # Раунд 10 (начальный) - только AddRoundKey
     print(f"\n{'='*50}")
     print("INITIAL ROUND (10) - AddRoundKey only")
     print(f"{'='*50}")
@@ -155,7 +140,6 @@ def aes128_decrypt_step_by_step(ciphertext, round_keys):
     state = add_round_key(state, round_keys[10])
     print_state(state, "After AddRoundKey(K10)")
     
-    # Раунды 9 до 1
     for round_num in range(9, 0, -1):
         print(f"\n{'='*50}")
         print(f"ROUND {round_num}")
@@ -173,7 +157,6 @@ def aes128_decrypt_step_by_step(ciphertext, round_keys):
         state = inv_mix_columns(state)
         print_state(state, "After InvMixColumns")
     
-    # Финальный раунд (0) - без InvMixColumns
     print(f"\n{'='*50}")
     print("FINAL ROUND (0) - No InvMixColumns")
     print(f"{'='*50}")
@@ -191,7 +174,6 @@ def aes128_decrypt_step_by_step(ciphertext, round_keys):
     return plaintext
 
 def test_nist_vector_1():
-    """Тест Vector 1 из NIST SP 800-38A"""
     print("=== NIST TEST VECTOR 1 ===")
     
     key = bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c")
@@ -202,14 +184,12 @@ def test_nist_vector_1():
     print(f"Ciphertext: {ciphertext.hex()}")
     print(f"Expected:   {expected_plaintext.hex()}")
     
-    # Генерируем раундовые ключи
     round_keys = key_expansion(key)
     
     print(f"\n=== ROUND KEYS ===")
     for i, k in enumerate(round_keys):
         print(f"K{i:2d}: {k.hex()}")
     
-    # Пошаговое дешифрование
     plaintext = aes128_decrypt_step_by_step(ciphertext, round_keys)
     
     print(f"\n{'='*70}")
@@ -220,7 +200,6 @@ def test_nist_vector_1():
     print(f"MATCH:      {plaintext == expected_plaintext}")
 
 def test_nist_vector_2():
-    """Тест Vector 2 из NIST SP 800-38A"""
     print("\n" + "="*70)
     print("=== NIST TEST VECTOR 2 ===")
     
@@ -232,10 +211,8 @@ def test_nist_vector_2():
     print(f"Ciphertext: {ciphertext.hex()}")
     print(f"Expected:   {expected_plaintext.hex()}")
     
-    # Генерируем раундовые ключи
     round_keys = key_expansion(key)
     
-    # Пошаговое дешифрование
     plaintext = aes128_decrypt_step_by_step(ciphertext, round_keys)
     
     print(f"\n{'='*70}")

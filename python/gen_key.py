@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-AES-128 Key Expansion Step-by-Step
-Подробный расчет каждого раундового ключа
-Генерация для SystemVerilog в формате parameter logic [127:0] KEY [0:10]
+AES-128 Key Expansion
+Generates SystemVerilog parameter format: parameter logic [127:0] KEY [0:10]
 """
 
 # AES S-Box
@@ -28,76 +27,31 @@ sbox = [
 # Rcon table
 rcon = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36]
 
-def print_word(word, title):
-    """Вывод слова (4 байта)"""
-    hex_str = " ".join([f"{b:02X}" for b in word])
-    print(f"{title}: [{hex_str}]")
-
-def print_key_schedule(w, round_num):
-    """Вывод расписания ключей для раунда"""
-    print(f"\nRound {round_num} Key Schedule:")
-    for i in range(4):
-        word_str = " ".join([f"{b:02X}" for b in w[4*round_num + i]])
-        print(f"  w[{4*round_num + i:2d}]: [{word_str}]")
-
-def key_expansion_step_by_step(key):
-    """
-    Пошаговое расширение ключа AES-128
-    """
-    print("=" * 80)
-    print("AES-128 KEY EXPANSION STEP BY STEP")
-    print("=" * 80)
-    
+def key_expansion(key):
+    """AES-128 key expansion"""
     key_bytes = list(key)
-    
-    # w[i] - 32-битные слова (4 байта)
     w = [0] * 44
     
-    print(f"Initial Key: {key.hex().upper()}")
-    print("\n=== INITIAL WORDS ===")
-    
-    # Первые 4 слова = начальный ключ
+    # First 4 words = initial key
     for i in range(4):
         w[i] = key_bytes[4*i:4*i+4]
-        print_word(w[i], f"w[{i}]")
     
-    print("\n" + "="*50)
-    
-    # Генерация остальных слов
+    # Generate remaining words
     for i in range(4, 44):
-        print(f"\n--- Generating w[{i}] ---")
-        
         temp = w[i-1][:]
-        print_word(temp, f"temp = w[{i-1}]")
         
         if i % 4 == 0:
-            print(f"  i % 4 == 0 → Applying key schedule core")
-            
             # RotWord
             temp = temp[1:] + temp[:1]
-            print_word(temp, f"  After RotWord")
-            
             # SubWord
             temp = [sbox[b] for b in temp]
-            print_word(temp, f"  After SubWord")
-            
             # XOR with Rcon
-            rcon_val = rcon[i//4 - 1]
-            temp[0] ^= rcon_val
-            print(f"  XOR with Rcon[{i//4 - 1}] = 0x{rcon_val:02X}")
-            print_word(temp, f"  After Rcon XOR")
+            temp[0] ^= rcon[i//4 - 1]
         
-        # XOR с w[i-4]
-        print_word(w[i-4], f"  w[{i-4}]")
+        # XOR with w[i-4]
         w[i] = [w[i-4][j] ^ temp[j] for j in range(4)]
-        print_word(w[i], f"  w[{i}] = w[{i-4}] XOR temp")
-        
-        # Показываем полный ключ каждые 4 слова
-        if (i + 1) % 4 == 0:
-            round_num = (i + 1) // 4 - 1
-            print_key_schedule(w, round_num)
     
-    # Формируем итоговые ключи
+    # Form round keys
     keys = []
     for i in range(11):
         key_round = []
@@ -108,31 +62,23 @@ def key_expansion_step_by_step(key):
     return keys
 
 def print_final_keys(keys):
-    """Вывод итоговых раундовых ключей"""
-    print("\n" + "="*80)
+    """Print final round keys"""
     print("FINAL ROUND KEYS")
-    print("="*80)
+    print("=" * 50)
     
     for i, key in enumerate(keys):
         hex_key = key.hex().upper()
         formatted = ' '.join([hex_key[j:j+2] for j in range(0, 32, 2)])
-        
         print(f"Round {i:2d}: {formatted}")
-        
-        if i == 0:
-            print("              ↑ Initial Key")
-        elif i == 10:
-            print("              ↑ Final Round Key")
 
 def generate_sv_parameter_format(keys):
-    """Генерация SystemVerilog кода в формате parameter logic [127:0] KEY [0:10]"""
-    print("\n" + "="*80)
-    print("SYSTEMVERILOG PARAMETER FORMAT")
-    print("="*80)
+    """Generate SystemVerilog parameter format"""
+    print("=" * 60)
+    print("SYSTEMVERILOG PARAMETER FORMAT (for Encryptor)")
+    print("=" * 60)
     
     print("parameter logic [127:0] KEY [0:10] = '{")
     
-    # Выводим ключи в прямом порядке для шифрования: K0, K1, K2, ..., K10
     for i in range(11):
         key_bytes = keys[i]
         hex_key = key_bytes.hex().upper()
@@ -141,25 +87,18 @@ def generate_sv_parameter_format(keys):
         if i < 10:
             line += ","
         
-        comment = f" // K{i}"
-        if i == 0:
-            comment += " (initial key)"
-        elif i == 10:
-            comment += " (final round key)"
-            
-        print(line + comment)
+        print(line)
     
-    print("};")
+    print("},")
 
 def generate_sv_reverse_parameter_format(keys):
-    """Генерация SystemVerilog кода в обратном порядке для дешифрования"""
-    print("\n" + "="*80)
-    print("SYSTEMVERILOG PARAMETER FORMAT (REVERSE FOR DECRYPTION)")
-    print("="*80)
+    """Generate SystemVerilog reverse parameter format"""
+    print("=" * 60)
+    print("SYSTEMVERILOG REVERSE PARAMETER FORMAT (for Decryptor)")
+    print("=" * 60)
     
     print("parameter logic [127:0] INV_KEY [0:10] = '{")
     
-    # Выводим ключи в обратном порядке: K10, K9, K8, ..., K0
     for i in range(10, -1, -1):
         key_bytes = keys[i]
         hex_key = key_bytes.hex().upper()
@@ -168,33 +107,26 @@ def generate_sv_reverse_parameter_format(keys):
         if i > 0:
             line += ","
         
-        comment = f" // K{i}"
-        if i == 10:
-            comment += " (first for decryption)"
-        elif i == 0:
-            comment += " (last for decryption)"
-            
-        print(line + comment)
+        print(line)
     
-    print("};")
+    print("},")
 
 def main():
-    # Основной ключ из стандарта AES
+    # AES standard key
     key = bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c")
     
     print(f"AES-128 Key: {key.hex().upper()}")
     print()
     
-    # Пошаговое расширение ключа
-    keys = key_expansion_step_by_step(key)
+    # Key expansion
+    keys = key_expansion(key)
     
-    # Итоговые ключи
+    # Print final keys
     print_final_keys(keys)
+    print()
     
-    # Генерация SystemVerilog кода в нужном формате
+    # Generate SystemVerilog code
     generate_sv_parameter_format(keys)
-    
-    # Дополнительные форматы
     generate_sv_reverse_parameter_format(keys)
 
 if __name__ == "__main__":
