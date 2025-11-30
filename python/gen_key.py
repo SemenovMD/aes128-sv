@@ -2,7 +2,7 @@
 """
 AES-128 Key Expansion Step-by-Step
 Подробный расчет каждого раундового ключа
-Генерация для SystemVerilog в обратном порядке
+Генерация для SystemVerilog в формате parameter logic [127:0] KEY [0:10]
 """
 
 # AES S-Box
@@ -124,14 +124,40 @@ def print_final_keys(keys):
         elif i == 10:
             print("              ↑ Final Round Key")
 
-def generate_sv_code_reverse(keys):
-    """Генерация SystemVerilog кода с ключами в обратном порядке"""
+def generate_sv_parameter_format(keys):
+    """Генерация SystemVerilog кода в формате parameter logic [127:0] KEY [0:10]"""
     print("\n" + "="*80)
-    print("SYSTEMVERILOG CODE (REVERSE ORDER FOR DECRYPTION)")
+    print("SYSTEMVERILOG PARAMETER FORMAT")
     print("="*80)
     
-    print("// Round keys in reverse order for AES decryption")
-    print("localparam logic [127:0] INV_KEY [0:10] = '{")
+    print("parameter logic [127:0] KEY [0:10] = '{")
+    
+    # Выводим ключи в прямом порядке для шифрования: K0, K1, K2, ..., K10
+    for i in range(11):
+        key_bytes = keys[i]
+        hex_key = key_bytes.hex().upper()
+        line = f"    128'h{hex_key}"
+        
+        if i < 10:
+            line += ","
+        
+        comment = f" // K{i}"
+        if i == 0:
+            comment += " (initial key)"
+        elif i == 10:
+            comment += " (final round key)"
+            
+        print(line + comment)
+    
+    print("};")
+
+def generate_sv_reverse_parameter_format(keys):
+    """Генерация SystemVerilog кода в обратном порядке для дешифрования"""
+    print("\n" + "="*80)
+    print("SYSTEMVERILOG PARAMETER FORMAT (REVERSE FOR DECRYPTION)")
+    print("="*80)
+    
+    print("parameter logic [127:0] INV_KEY [0:10] = '{")
     
     # Выводим ключи в обратном порядке: K10, K9, K8, ..., K0
     for i in range(10, -1, -1):
@@ -152,34 +178,6 @@ def generate_sv_code_reverse(keys):
     
     print("};")
 
-def generate_sv_code_forward(keys):
-    """Генерация SystemVerilog кода с ключами в прямом порядке"""
-    print("\n" + "="*80)
-    print("SYSTEMVERILOG CODE (FORWARD ORDER FOR ENCRYPTION)")
-    print("="*80)
-    
-    print("// Round keys in forward order for AES encryption")
-    print("localparam logic [127:0] FWD_KEY [10:0] = '{")
-    
-    # Выводим ключи в прямом порядке: K0, K1, K2, ..., K10
-    for i in range(11):
-        key_bytes = keys[i]
-        hex_key = key_bytes.hex().upper()
-        line = f"    128'h{hex_key}"
-        
-        if i < 10:
-            line += ","
-        
-        comment = f" // K{i}"
-        if i == 0:
-            comment += " (initial key)"
-        elif i == 10:
-            comment += " (final round key)"
-            
-        print(line + comment)
-    
-    print("};")
-
 def main():
     # Основной ключ из стандарта AES
     key = bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c")
@@ -193,11 +191,11 @@ def main():
     # Итоговые ключи
     print_final_keys(keys)
     
-    # Генерация SystemVerilog кода в обратном порядке (для дешифрования)
-    generate_sv_code_reverse(keys)
+    # Генерация SystemVerilog кода в нужном формате
+    generate_sv_parameter_format(keys)
     
-    # Генерация SystemVerilog кода в прямом порядке (для шифрования)
-    generate_sv_code_forward(keys)
+    # Дополнительные форматы
+    generate_sv_reverse_parameter_format(keys)
 
 if __name__ == "__main__":
     main()

@@ -5,9 +5,9 @@ transcript on
 vlib work
 
 # Compile the design and testbench
-vlog -sv    aes128_dec/aes128_dec_44_cycle/rtl/aes128_dec_core.sv
+vlog -sv    aes128_dec/aes128_dec_42_cycle/rtl/aes128_dec_core.sv
 
-vlog -sv    aes128_dec/aes128_dec_44_cycle/tb/tb_aes128_dec.sv
+vlog -sv    aes128_dec/aes128_dec_42_cycle/tb/tb_aes128_dec.sv
 
 # Simulate the testbench
 vsim -t 1ns -L altera_mf_ver -voptargs="+acc" tb_aes128_dec

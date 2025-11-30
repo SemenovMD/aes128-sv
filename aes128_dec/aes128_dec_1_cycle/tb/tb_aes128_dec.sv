@@ -37,7 +37,7 @@ module tb_aes128_dec;
     end
 
     // AES-128 decryption core with static key
-    aes128_dec_core dut (
+    aes128_dec_core_cluster dut (
         .aclk(aclk),
         .aresetn(aresetn),
         .s_axis_tdata(s_axis_tdata),

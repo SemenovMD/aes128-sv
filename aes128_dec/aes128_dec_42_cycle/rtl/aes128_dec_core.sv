@@ -1,5 +1,21 @@
 module aes128_dec_core
 
+#(
+    parameter logic [127:0] INV_KEY [0:10] = '{
+        128'hD014F9A8C9EE2589E13F0CC8B6630CA6,
+        128'hAC7766F319FADC2128D12941575C006E, 
+        128'hEAD27321B58DBAD2312BF5607F8D292F,
+        128'h4E54F70E5F5FC9F384A64FB24EA6DC4F,
+        128'h6D88A37A110B3EFDDBF98641CA0093FD,
+        128'hD4D1C6F87C839D87CAF2B8BC11F915BC,
+        128'hEF44A541A8525B7FB671253BDB0BAD00,
+        128'h3D80477D4716FE3E1E237E446D7A883B,
+        128'hF2C295F27A96B9435935807A7359F67F,
+        128'hA0FAFE1788542CB123A339392A6C7605,
+        128'h2B7E151628AED2A6ABF7158809CF4F3C
+    }
+)
+
 (
     input   logic           aclk,
     input   logic           aresetn,
@@ -12,20 +28,6 @@ module aes128_dec_core
     output  logic           m_axis_tvalid,
     input   logic           m_axis_tready
 );
-
-    localparam logic [127:0] KEY [10:0] = '{
-        128'h2B7E151628AED2A6ABF7158809CF4F3C, // Round 0 (initial key)
-        128'hA0FAFE1788542CB123A339392A6C7605, // Round 1
-        128'hF2C295F27A96B9435935807A7359F67F, // Round 2
-        128'h3D80477D4716FE3E1E237E446D7A883B, // Round 3
-        128'hEF44A541A8525B7FB671253BDB0BAD00, // Round 4
-        128'hD4D1C6F87C839D87CAF2B8BC11F915BC, // Round 5
-        128'h6D88A37A110B3EFDDBF98641CA0093FD, // Round 6
-        128'h4E54F70E5F5FC9F384A64FB24EA6DC4F, // Round 7
-        128'hEAD27321B58DBAD2312BF5607F8D292F, // Round 8
-        128'hAC7766F319FADC2128D12941575C006E, // Round 9
-        128'hD014F9A8C9EE2589E13F0CC8B6630CA6  // Round 10
-    };
 
     localparam logic [7:0] INV_SBOX [0:255] = '{
         //  0      1      2      3      4      5      6      7      8      9      A      B      C      D      E      F
@@ -173,10 +175,10 @@ module aes128_dec_core
     {
         START,
         HAND_S_AXIS,
-        ADD_ROUND_KEY_0,
+        ADD_ROUND_INV_KEY_0,
         INV_SHIFT_ROWS,
         INV_SUB_BYTES,
-        ADD_ROUND_KEY_1,
+        ADD_ROUND_INV_KEY_1,
         INV_MIX_COLUMS,
         HAND_M_AXIS
     } state_type;
@@ -199,17 +201,17 @@ module aes128_dec_core
                 HAND_S_AXIS:
                     begin
                         if (s_axis_tvalid) begin
-                            state <= ADD_ROUND_KEY_0;
+                            state <= ADD_ROUND_INV_KEY_0;
                             data_buf <= s_axis_tdata;
                             s_axis_tready <= 1'd0;
                         end
 
                         m_axis_tvalid <= 1'd0;
                     end
-                ADD_ROUND_KEY_0:
+                ADD_ROUND_INV_KEY_0:
                     begin
                         state <= INV_SHIFT_ROWS;
-                        data_buf <= data_buf ^ KEY[count];
+                        data_buf <= data_buf ^ INV_KEY[count];
                         count <= count + 1'd1;
                         s_axis_tready <= 1'd0;
                     end
@@ -224,7 +226,7 @@ module aes128_dec_core
                     end
                 INV_SUB_BYTES:
                     begin
-                        state <= ADD_ROUND_KEY_1;
+                        state <= ADD_ROUND_INV_KEY_1;
 
                         data_buf[127:120] <= INV_SBOX[data_buf[127:120]];
                         data_buf[119:112] <= INV_SBOX[data_buf[119:112]];
@@ -243,7 +245,7 @@ module aes128_dec_core
                         data_buf[15:8]    <= INV_SBOX[data_buf[15:8]];
                         data_buf[7:0]     <= INV_SBOX[data_buf[7:0]];
                     end
-                ADD_ROUND_KEY_1:
+                ADD_ROUND_INV_KEY_1:
                     begin
                         if (count != 4'd10) begin
                             count <= count + 1'd1;
@@ -253,7 +255,7 @@ module aes128_dec_core
                             state <= HAND_M_AXIS;
                         end
 
-                        data_buf <= data_buf ^ KEY[count];
+                        data_buf <= data_buf ^ INV_KEY[count];
                     end
                 INV_MIX_COLUMS:
                     begin
