@@ -1,165 +1,151 @@
-# AES-128 Core
+# AES-128 Core and Pipeline
 
-Модуль представляет собой высокопроизводительную реализацию `AES-128` на `SystemVerilog`, обеспечивающую максимальную пропускную способность до `1 операции за такт`. Архитектура основана на кластере параллельных ядер с интегрированным `AXI-Stream` интерфейсом, оптимизированная для развертывания на FPGA платформах `Xilinx`.
-
-
-## Содержание
+The module represents a single-core or pipeline architecture `AES-128` implementation in `SystemVerilog` with an integrated `AXI-Stream` interface, optimized for deployment on `Xilinx` FPGA platforms.
 
 
-- [Особенности](#особенности)
-- [Параметры](#параметры)
-- [Производительность](#производительность-и-утилизация)
-- [Симуляция](#симуляция)
-- [Примеры Python скриптов](#примеры-python-скриптов)
-- [Документация](#документация)
-- [Лицензия](#лицензия)
-- [Автор](#автор)
+## Table of Contents
 
 
-## Особенности
+- [Features](#features)
+- [Parameters](#parameters)
+- [Performance](#performance-and-utilization)
+- [Simulation](#simulation)
+- [Python Scripts Examples](#python-scripts-examples)
+- [Documentation](#documentation)
+- [License](#license)
+- [Author](#author)
 
 
-- Максимальная пропускная способность (до 1 операции дешифрования/шифрования за такт).
-- Масштабируемая архитектура (поддержка 1-44 параллельных ядер).
-- Низкая задержка (42-44 такта на операцию).
-- Обмен данными через `AXI-Stream` интерфейс.
-- Статические ключи.
+## Features
 
 
-## Параметры IP
+- Single-core architecture.
+- Pipeline architecture.
+- Key expansion block.
+- Data exchange via `AXI-Stream` interface.
+- Support for both encryption and decryption.
+- Latency - 43 clock cycles.
 
 
-- `CORE` - количество параллельных ядер AES-128 (1-44). При `CORE = 44` достигается максимальная пропускная способность.
-- `KEY` - массив раундовых ключей для шифрования.
-- `INV_KEY` - массив раундовых ключей для дешифрования.
+## Parameters
 
 
-## Производительность и утилизация
+- `START_KEY` - initial AES-128 key. Default: `128'h2B7E151628AED2A6ABF7158809CF4F3C`.
+- Round keys are automatically generated in the `key_expansion` module.
+
+## Performance and Utilization
 
 
-Метрики синтеза и имплементации для `Xilinx Kintex-7 xc7k325tfbg676-2`.
+Implementation metrics for `Xilinx Kintex-7 xc7k325tfbg676-2`.
 
 ### AES128 Decryptor
 
 ```sh
-| Cores | LUT    | FF     | BRAM | Latency (cc) | Throughput (ops/cc) | Frequency (MHz) |
-|-------|--------|--------|------|--------------|---------------------|-----------------|
-| 1     | 1332   | 307    | 0    | 42           | 1/42 ≈ 0.024        | 250-300         |
-| 44    | 60287  | 13607  | 2    | 44           | 1                   | 200-250         |
+| Mode     | LUT    | FF     | BRAM | Frequency (MHz) |
+|----------|--------|--------|------|-----------------|
+| Core     | 1178   | 270    | 0    | 300+            |
+| Pipeline | 8447   | 5300   | 0    | 300+            |
 ```
+
 ### AES128 Encryptor
 
 ```sh
-| Cores | LUT    | FF     | BRAM | Latency (cc) | Throughput (ops/cc) | Frequency (MHz) |
-|-------|--------|--------|------|--------------|---------------------|-----------------|
-| 1     | 1115   | 291    | 0    | 42           | 1/42 ≈ 0.024        | 250-300         |
-| 44    | 50849  | 12904  | 2    | 44           | 1                   | 200-250         |
+| Mode     | LUT    | FF     | BRAM | Frequency (MHz) |
+|----------|--------|--------|------|-----------------|
+| Core     | 1066   | 271    | 0    | 300+            |
+| Pipeline | 6722   | 4980   | 0    | 300+            |
 ```
 
-
-## Симуляция
-
-
-Для симуляции используется `QuestaSim`. Убедитесь, что путь к исполняемому файлу `vsim` добавлен в файл `bashrc`.
-
-Для запуска симуляции `AES128 Decryptor CORE` выполните команду:
+### AES128 Key Expansion
 ```sh
-make sim_dec_42_cycle
+| LUT    | FF     | BRAM | Frequency (MHz) |
+|--------|--------|------|-----------------|
+| 2392   | 1709   | 0    | 300+            |
 ```
-Для запуска симуляции `AES128 Decryptor CLUSTER CORE` выполните команду:
+
+To prevent BRAM usage and implement memory using distributed registers (distributed ROM), add the following constraint to your XDC file:
+
+```tcl
+set_property rom_style distributed [get_cells -hier -filter {NAME =~ **}]
+```
+
+This constraint ensures that all substitution tables (S-boxes) will be implemented on LUTs instead of BRAM blocks.
+
+
+## Simulation
+
+
+`QuestaSim` is used for simulation. Make sure the path to the `vsim` executable is added to your `bashrc`.
+
+To run `AES128 Decryptor Core` simulation, execute:
 ```sh
-make sim_dec_1_cycle
+make sim_dec_core
 ```
-Для запуска симуляции `AES128 Encryptor CORE` выполните команду:
+To run `AES128 Decryptor Pipeline` simulation, execute:
 ```sh
-make sim_enc_42_cycle
+make sim_dec_pipeline
 ```
-Для запуска симуляции `AES128 Encryptor CLUSTER CORE` выполните команду:
+To run `AES128 Encryptor Core` simulation, execute:
 ```sh
-make sim_enc_1_cycle
+make sim_enc_core
 ```
-Для очистки файлов, полученных при симуляции выполните команду:
+To run `AES128 Encryptor Pipeline` simulation, execute:
+```sh
+make sim_enc_pipeline
+```
+To clean simulation files, execute:
 ```sh
 make clean
 ```
 
 
-## Примеры python скриптов
+## Python Scripts Examples
 
 
 ### `calc_dec`
-Расчет операции `дешифрования AES128` по раундам.
+Calculates `AES128 decryption` operation round by round.
 
 ### `calc_enc`
-Расчет операции `шифрования AES128` по раундам.
-
-### `gen_key`
-Расчет ключей для операций `дешифрования и шифрования AES128`, генерация массивов ключей в формате `SystemVerilog`:
-```sh
-parameter logic [127:0] KEY [0:10] = '{
-    128'h2B7E151628AED2A6ABF7158809CF4F3C,
-    128'hA0FAFE1788542CB123A339392A6C7605,
-    128'hF2C295F27A96B9435935807A7359F67F,
-    128'h3D80477D4716FE3E1E237E446D7A883B,
-    128'hEF44A541A8525B7FB671253BDB0BAD00,
-    128'hD4D1C6F87C839D87CAF2B8BC11F915BC,
-    128'h6D88A37A110B3EFDDBF98641CA0093FD,
-    128'h4E54F70E5F5FC9F384A64FB24EA6DC4F,
-    128'hEAD27321B58DBAD2312BF5607F8D292F,
-    128'hAC7766F319FADC2128D12941575C006E,
-    128'hD014F9A8C9EE2589E13F0CC8B6630CA6
-},
-
-parameter logic [127:0] INV_KEY [0:10] = '{
-    128'hD014F9A8C9EE2589E13F0CC8B6630CA6,
-    128'hAC7766F319FADC2128D12941575C006E,
-    128'hEAD27321B58DBAD2312BF5607F8D292F,
-    128'h4E54F70E5F5FC9F384A64FB24EA6DC4F,
-    128'h6D88A37A110B3EFDDBF98641CA0093FD,
-    128'hD4D1C6F87C839D87CAF2B8BC11F915BC,
-    128'hEF44A541A8525B7FB671253BDB0BAD00,
-    128'h3D80477D4716FE3E1E237E446D7A883B,
-    128'hF2C295F27A96B9435935807A7359F67F,
-    128'hA0FAFE1788542CB123A339392A6C7605,
-    128'h2B7E151628AED2A6ABF7158809CF4F3C
-},
-```
+Calculates `AES128 encryption` operation round by round.
 
 ### `gen_tables`
-Генерация тестовых данных `ciphertext.txt` и `plaintext.txt` для верификации в testbench.
+Generates test data `ciphertext.txt` and `plaintext.txt` for verification in testbench.
 
 
-## Документация
+## Documentation
+
+### `aes128_core_top`
+Top-level module that combines single-core encryption and decryption blocks with the key expansion block.
 
 ### `aes128_enc_core`
-Одиночное ядро шифрования AES-128. Поддерживает статический ключ через параметр `KEY`.
+Basic AES-128 encryption core.
 
 ### `aes128_dec_core`
-Одиночное ядро дешифрования AES-128. Поддерживает статический ключ через параметр `INV_KEY`.
+Basic AES-128 decryption core.
 
-### `aes128_enc_core_cluster`
-Кластер параллельных ядер шифрования AES-128, обеспечивающий пропускную способность до 1 операции за такт. Объединяет несколько экземпляров `aes128_enc_core` через мультиплексоры `axis_rr_mux_rx` и `axis_rr_mux_tx`. Количество ядер настраивается параметром `CORE` (1-44).
+### `aes128_pp_top`
+Top-level module that combines pipeline encryption and decryption blocks with the key expansion block.
 
-### `aes128_dec_core_cluster`
-Кластер параллельных ядер дешифрования AES-128, обеспечивающий пропускную способность до 1 операции за такт. Объединяет несколько экземпляров `aes128_dec_core` через мультиплексоры `axis_rr_mux_rx` и `axis_rr_mux_tx`. Количество ядер настраивается параметром `CORE` (1-44).
+### `aes128_enc_pp`
+Pipeline AES-128 encryption core.
 
-### `axis_rr_mux_rx`
-Round-robin мультиплексор для распределения входящих AXI-Stream данных по параллельным ядрам. Реализует алгоритм циклического распределения транзакций между ядрами для обеспечения равномерной загрузки.
+### `aes128_dec_pp`
+Pipeline AES-128 decryption core.
 
-### `axis_rr_mux_tx`
-Round-robin мультиплексор для сбора исходящих AXI-Stream данных от параллельных ядер. Использует FIFO-буфер для упорядочивания результатов от разных ядер и формирования единого потока данных.
+### `key_expansion`
+Key expansion module. Generates all 11 round keys from the initial 128-bit key.
 
 ### `tb_aes128_enc`
-Тестбенч для проверки работы модулей шифрования. Генерирует тестовые векторы из файлов `plaintext.txt` и `ciphertext.txt`, выполняет шифрование в режиме burst и сравнивает результаты с ожидаемыми значениями. Поддерживает тестирование как одиночного ядра, так и кластера.
+Testbench for testing encryption modules. Generates test vectors from `plaintext.txt` and `ciphertext.txt` files, performs encryption, and compares results with expected values.
 
 ### `tb_aes128_dec`
-Тестбенч для проверки работы модулей дешифрования. Генерирует тестовые векторы из файлов `ciphertext.txt` и `plaintext.txt`, выполняет дешифрование в режиме burst и сравнивает результаты с ожидаемыми значениями. Поддерживает тестирование как одиночного ядра, так и кластера.
+Testbench for testing decryption modules. Generates test vectors from `ciphertext.txt` and `plaintext.txt` files, performs decryption, and compares results with expected values.
 
 
-## Лицензия
+## License
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)  
-Проект распространяется под лицензией [MIT](LICENSE).
+The project is distributed under the [MIT](LICENSE) license.
 
 
-## Автор
-- [Семёнов Максим](https://t.me/semenovmd) — FPGA Engineer
+## Author
+- [Semenov Maxim](https://t.me/semenovmd) — FPGA Engineer
